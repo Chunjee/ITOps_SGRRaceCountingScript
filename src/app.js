@@ -2,8 +2,8 @@
 // ITOps SGR Yelling script
 
 // ------------- includes ------------------
-var moment = require('moment'),
-	fs = require('fs'),
+var fs = require('fs'),
+	moment = require('moment'),
 	Slack = require('machinepack-slack'),
 	_ = require('lodash');
 
@@ -18,8 +18,8 @@ var	DEBUG = {
 
 // -------- { errors & errorhandling } ----------
 process.on('unhandledRejection', error => {
-  // Will print "unhandledRejection err is not defined"
-  console.log('unhandledRejection', error.message);
+	console.log('unhandledRejection', error.message);
+	process.exit(1);
 });
 
 
@@ -34,42 +34,46 @@ var date_today = moment().format("MM-DD-YYYY");
 var results = fn_FindClosedRaces(usersettings.sgrfilelocations); //"TVGVPRTGP01","TVGVPRTGP02","NJAOPSTGP01","NJAOPSTGP02"
 // Possible future improvement {"open": x, "closed": y, "official": z}
 
-//	Quit after 10 seconds (allows slack messages to be sent) 
+//exit with error code 1 if fn_FindClosedRaces was not successful
+console.log(results);
+if (results != 0) {
+	process.exit(1);
+}
+
+//	Quit after 10 seconds (allows slack messages to finish being sent) 
 setTimeout(function(){ 
 	process.exit(0); //0 is success
 }, 10000);
 
 
 // -------------- { top functions } -------------
-
-
-
-// --------------- { functions } -----------------
 function fn_FindClosedRaces(para_FileArray) {
 	for (let index = 0; index < para_FileArray.length; index++) {
 		const element = para_FileArray[index];
 		var thefile = fs.readFileSync("\\\\" + element + "\\tvg\\LogFiles\\" + date_today + "\\SGRData" + date_today + ".txt", "utf8");
 		console.log("Parsing file on: " + element);
-		var array = thefile.split(/\r?\n/);
+		var txtArray = thefile.split(/\r?\n/);
 
 		var allData = [];
 			var trackCode, trackName, messageType, currentRace, officialRace
 
-		for (let lineindex = 0; lineindex < array.length; lineindex++) {
-			const txtline = array[lineindex];
+		for (let lineindex = 0; lineindex < txtArray.length; lineindex++) {
+			const txtline = txtArray[lineindex];
 			
 			var messagetype_REGEX = new RegExp(usersettings.messagetype_REGEX, 'gi');
 			messageType = messagetype_REGEX.exec(txtline); //OD\d+([A-Z]{2})
+			// console.log(messageType[1])
 			if (messageType == null) {
-				console.log("No MessageType found in " + txtline);
+				if (txtline.length > 40) {
+					console.log("No MessageType found in " + txtline);
+				}
 				continue;
 			}
-			// console.log(messageType[1])
 			if (messageType == null || messageType[1] != "RI") {
 				continue;
 			}
 
-			var trackCode_REGEX = new RegExp(usersettings.trackCode_REGEX, 'gi');
+			var trackCode_REGEX = new RegExp(usersettings.trackcode_REGEX, 'gi');
 			trackCode = undefined
 			trackCode = trackCode_REGEX.exec(txtline); //\d{5}(\w{3})
 			if (!trackCode) {
@@ -99,7 +103,7 @@ function fn_FindClosedRaces(para_FileArray) {
 			}
 			
 		} //end of each file
-		// console.log(allData);
+		console.log(allData);
 		var slackString = "";
 		var officialCount = 0;
 		for (let thisTrackIndex = 0; thisTrackIndex < allData.length; thisTrackIndex++) {
@@ -108,14 +112,15 @@ function fn_FindClosedRaces(para_FileArray) {
 				officialCount += track.officialRace
 			}
 		}
-		slackString = element + " - [Official Races: " + officialCount + "] (" + moment().format('MM/DD') + ")";
+		slackString = element + " - [Official Races: " + officialCount + "] Racedate: " + moment().format('MM/DD');
 		console.log(slackString);
 		// SlackPost(slackString);
 
 	} //end of each server
 	
-	// console.log(allData);
+	return 0;
 }
+
 
 
 
