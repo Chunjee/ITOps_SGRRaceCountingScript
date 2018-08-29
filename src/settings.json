@@ -1,0 +1,7 @@
+{
+    "SlackAPIEndpoint": "",
+    "sgrfilelocations": ["TVGVPRTGP01","TVGVPRTGP02","NJAOPSTGP01","NJAOPSTGP02"],
+    "messagetype_REGEX": "[ODNJ]{2}\\d{4}([A-Z]{2})",
+    "trackcode_REGEX": "message=.+\\s{5}\\d{5}(\\w{3})",
+    "officialrace_REGEX": "message.+\\w{3}\\s(\\d{2})"
+}
